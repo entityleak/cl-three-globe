@@ -167,3 +167,96 @@ export const setExtendedMaterialUniforms = (material, uniformsFn = u => u) => {
     };
   }
 }
+
+export const halftoneShader = {
+  uniforms: {
+    tDiffuse: { value: null },
+    resolution: { value: null },
+    pixelSize: { value: 6.0 },
+    shape: { value: 1.0 }, // 0 = circle, 1 = square, 2 = diamond
+    rotationAngle: { value: 0.785398 }, // 45 degrees in radians
+    greyscale: { value: false },
+    blending: { value: 1.0 },
+    disable: { value: false }
+  },
+  vertexShader: `
+    varying vec2 vUv;
+    void main() {
+      vUv = uv;
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    }
+  `,
+  fragmentShader: `
+    uniform sampler2D tDiffuse;
+    uniform vec2 resolution;
+    uniform float pixelSize;
+    uniform float shape;
+    uniform float rotationAngle;
+    uniform bool greyscale;
+    uniform float blending;
+    uniform bool disable;
+
+    varying vec2 vUv;
+
+    float luma(vec3 color) {
+      return dot(color, vec3(0.299, 0.587, 0.114));
+    }
+
+    vec2 rotate(vec2 v, float angle) {
+      float s = sin(angle);
+      float c = cos(angle);
+      mat2 m = mat2(c, -s, s, c);
+      return m * v;
+    }
+
+    float circle(vec2 coord, float radius) {
+      return 1.0 - smoothstep(radius - 0.1, radius + 0.1, length(coord));
+    }
+
+    float square(vec2 coord, float size) {
+      vec2 d = abs(coord) - vec2(size);
+      return 1.0 - smoothstep(-0.1, 0.1, max(d.x, d.y));
+    }
+
+    float diamond(vec2 coord, float size) {
+      float d = abs(coord.x) + abs(coord.y) - size;
+      return 1.0 - smoothstep(-0.1, 0.1, d);
+    }
+
+    void main() {
+      if (disable) {
+        gl_FragColor = texture2D(tDiffuse, vUv);
+        return;
+      }
+
+      vec2 coord = vUv * resolution;
+      vec2 rotatedCoord = rotate(coord, rotationAngle);
+
+      vec2 grid = floor(rotatedCoord / pixelSize) * pixelSize;
+      vec2 cellCenter = grid + pixelSize * 0.5;
+      vec2 cellCoord = (rotatedCoord - cellCenter) / (pixelSize * 0.5);
+
+      vec2 sampleCoord = rotate(cellCenter, -rotationAngle) / resolution;
+      sampleCoord = clamp(sampleCoord, 0.0, 1.0);
+
+      vec4 tex = texture2D(tDiffuse, sampleCoord);
+      float intensity = greyscale ? luma(tex.rgb) : (tex.r + tex.g + tex.b) / 3.0;
+
+      float dotSize = intensity * 0.8 + 0.1;
+      float mask;
+
+      if (shape < 0.5) {
+        mask = circle(cellCoord, dotSize);
+      } else if (shape < 1.5) {
+        mask = square(cellCoord, dotSize);
+      } else {
+        mask = diamond(cellCoord, dotSize);
+      }
+
+      vec3 halftoneColor = tex.rgb * mask;
+      vec3 finalColor = mix(tex.rgb, halftoneColor, blending);
+
+      gl_FragColor = vec4(finalColor, tex.a);
+    }
+  `
+};

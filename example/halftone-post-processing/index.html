@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body {
+      margin: 0;
+      background: #000;
+      color: white;
+      font-family: Arial, sans-serif;
+    }
+
+    #controls {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      z-index: 100;
+      background: rgba(0,0,0,0.7);
+      padding: 15px;
+      border-radius: 5px;
+    }
+
+    .control-group {
+      margin-bottom: 10px;
+    }
+
+    label {
+      display: inline-block;
+      width: 120px;
+      font-size: 12px;
+    }
+
+    input[type="range"] {
+      width: 100px;
+    }
+
+    select {
+      background: #333;
+      color: white;
+      border: 1px solid #555;
+    }
+  </style>
+
+  <script type="importmap">{ "imports": {
+    "three": "https://esm.sh/three",
+    "three/": "https://esm.sh/three/"
+  }}</script>
+</head>
+
+<body>
+  <div id="globeViz"></div>
+
+  <div id="controls">
+    <h3>Halftone Controls</h3>
+
+    <div class="control-group">
+      <label>Pixel Size:</label>
+      <input type="range" id="pixelSize" min="2" max="20" value="6" step="0.5">
+      <span id="pixelSizeValue">6</span>
+    </div>
+
+    <div class="control-group">
+      <label>Shape:</label>
+      <select id="shape">
+        <option value="0">Circle</option>
+        <option value="1" selected>Square</option>
+        <option value="2">Diamond</option>
+      </select>
+    </div>
+
+    <div class="control-group">
+      <label>Rotation:</label>
+      <input type="range" id="rotation" min="0" max="360" value="45" step="5">
+      <span id="rotationValue">45°</span>
+    </div>
+
+    <div class="control-group">
+      <label>Blending:</label>
+      <input type="range" id="blending" min="0" max="1" value="1" step="0.1">
+      <span id="blendingValue">1.0</span>
+    </div>
+
+    <div class="control-group">
+      <label>Greyscale:</label>
+      <input type="checkbox" id="greyscale">
+    </div>
+
+    <div class="control-group">
+      <label>Enable Effect:</label>
+      <input type="checkbox" id="enable" checked>
+    </div>
+  </div>
+
+  <script type="module">
+    import ThreeGlobe from 'https://esm.sh/three-globe@2.44.0?external=three';
+    import * as THREE from 'three';
+    import { TrackballControls } from 'three/addons/controls/TrackballControls.js';
+    import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+    import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+    import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
+
+    // Halftone shader definition (inline for this example)
+    const HalftoneShader = {
+      uniforms: {
+        tDiffuse: { value: null },
+        resolution: { value: new THREE.Vector2() },
+        pixelSize: { value: 6.0 },
+        shape: { value: 1.0 },
+        rotationAngle: { value: 0.785398 },
+        greyscale: { value: false },
+        blending: { value: 1.0 },
+        disable: { value: false }
+      },
+      vertexShader: `
+        varying vec2 vUv;
+        void main() {
+          vUv = uv;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,
+      fragmentShader: `
+        uniform sampler2D tDiffuse;
+        uniform vec2 resolution;
+        uniform float pixelSize;
+        uniform float shape;
+        uniform float rotationAngle;
+        uniform bool greyscale;
+        uniform float blending;
+        uniform bool disable;
+
+        varying vec2 vUv;
+
+        float luma(vec3 color) {
+          return dot(color, vec3(0.299, 0.587, 0.114));
+        }
+
+        vec2 rotate(vec2 v, float angle) {
+          float s = sin(angle);
+          float c = cos(angle);
+          mat2 m = mat2(c, -s, s, c);
+          return m * v;
+        }
+
+        float circle(vec2 coord, float radius) {
+          return 1.0 - smoothstep(radius - 0.1, radius + 0.1, length(coord));
+        }
+
+        float square(vec2 coord, float size) {
+          vec2 d = abs(coord) - vec2(size);
+          return 1.0 - smoothstep(-0.1, 0.1, max(d.x, d.y));
+        }
+
+        float diamond(vec2 coord, float size) {
+          float d = abs(coord.x) + abs(coord.y) - size;
+          return 1.0 - smoothstep(-0.1, 0.1, d);
+        }
+
+        void main() {
+          if (disable) {
+            gl_FragColor = texture2D(tDiffuse, vUv);
+            return;
+          }
+
+          vec2 coord = vUv * resolution;
+          vec2 rotatedCoord = rotate(coord, rotationAngle);
+
+          vec2 grid = floor(rotatedCoord / pixelSize) * pixelSize;
+          vec2 cellCenter = grid + pixelSize * 0.5;
+          vec2 cellCoord = (rotatedCoord - cellCenter) / (pixelSize * 0.5);
+
+          vec2 sampleCoord = rotate(cellCenter, -rotationAngle) / resolution;
+          sampleCoord = clamp(sampleCoord, 0.0, 1.0);
+
+          vec4 tex = texture2D(tDiffuse, sampleCoord);
+          float intensity = greyscale ? luma(tex.rgb) : (tex.r + tex.g + tex.b) / 3.0;
+
+          float dotSize = intensity * 0.8 + 0.1;
+          float mask;
+
+          if (shape < 0.5) {
+            mask = circle(cellCoord, dotSize);
+          } else if (shape < 1.5) {
+            mask = square(cellCoord, dotSize);
+          } else {
+            mask = diamond(cellCoord, dotSize);
+          }
+
+          vec3 halftoneColor = tex.rgb * mask;
+          vec3 finalColor = mix(tex.rgb, halftoneColor, blending);
+
+          gl_FragColor = vec4(finalColor, tex.a);
+        }
+      `
+    };
+
+    // Generate random data for globe
+    const N = 15;
+    const gData = [...Array(N).keys()].map(() => ({
+      lat: (Math.random() - 0.5) * 180,
+      lng: (Math.random() - 0.5) * 360,
+      maxR: Math.random() * 20 + 3,
+      propagationSpeed: (Math.random() - 0.5) * 20 + 1,
+      repeatPeriod: Math.random() * 2000 + 200
+    }));
+
+    const colorInterpolator = t => `rgba(255,100,50,${1-t})`;
+
+    // Create globe
+    const Globe = new ThreeGlobe()
+      .globeImageUrl('//cdn.jsdelivr.net/npm/three-globe/example/img/earth-water.png')
+      .bumpImageUrl('//cdn.jsdelivr.net/npm/three-globe/example/img/earth-topology.png')
+      .ringsData(gData)
+      .ringColor(() => colorInterpolator)
+      .ringMaxRadius('maxR')
+      .ringPropagationSpeed('propagationSpeed')
+      .ringRepeatPeriod('repeatPeriod');
+
+    // Setup renderer
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(2, window.devicePixelRatio));
+    document.getElementById('globeViz').appendChild(renderer.domElement);
+
+    // Setup scene
+    const scene = new THREE.Scene();
+    scene.add(Globe);
+    scene.add(new THREE.AmbientLight(0xcccccc, Math.PI));
+    scene.add(new THREE.DirectionalLight(0xffffff, 0.6 * Math.PI));
+
+    // Setup camera
+    const camera = new THREE.PerspectiveCamera();
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    camera.position.z = 500;
+
+    // Add camera controls
+    const tbControls = new TrackballControls(camera, renderer.domElement);
+    tbControls.minDistance = 101;
+    tbControls.rotateSpeed = 5;
+    tbControls.zoomSpeed = 0.8;
+
+    // Setup post-processing
+    const composer = new EffectComposer(renderer);
+    const renderPass = new RenderPass(scene, camera);
+    composer.addPass(renderPass);
+
+    const halftonePass = new ShaderPass(HalftoneShader);
+    halftonePass.uniforms.resolution.value.set(window.innerWidth, window.innerHeight);
+    composer.addPass(halftonePass);
+
+    // Controls
+    const controls = {
+      pixelSize: document.getElementById('pixelSize'),
+      shape: document.getElementById('shape'),
+      rotation: document.getElementById('rotation'),
+      blending: document.getElementById('blending'),
+      greyscale: document.getElementById('greyscale'),
+      enable: document.getElementById('enable')
+    };
+
+    const values = {
+      pixelSizeValue: document.getElementById('pixelSizeValue'),
+      rotationValue: document.getElementById('rotationValue'),
+      blendingValue: document.getElementById('blendingValue')
+    };
+
+    // Control event listeners
+    controls.pixelSize.addEventListener('input', (e) => {
+      const value = parseFloat(e.target.value);
+      halftonePass.uniforms.pixelSize.value = value;
+      values.pixelSizeValue.textContent = value;
+    });
+
+    controls.shape.addEventListener('change', (e) => {
+      halftonePass.uniforms.shape.value = parseFloat(e.target.value);
+    });
+
+    controls.rotation.addEventListener('input', (e) => {
+      const degrees = parseInt(e.target.value);
+      const radians = degrees * Math.PI / 180;
+      halftonePass.uniforms.rotationAngle.value = radians;
+      values.rotationValue.textContent = degrees + '°';
+    });
+
+    controls.blending.addEventListener('input', (e) => {
+      const value = parseFloat(e.target.value);
+      halftonePass.uniforms.blending.value = value;
+      values.blendingValue.textContent = value.toFixed(1);
+    });
+
+    controls.greyscale.addEventListener('change', (e) => {
+      halftonePass.uniforms.greyscale.value = e.target.checked;
+    });
+
+    controls.enable.addEventListener('change', (e) => {
+      halftonePass.uniforms.disable.value = !e.target.checked;
+    });
+
+    // Handle window resize
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      composer.setSize(window.innerWidth, window.innerHeight);
+      halftonePass.uniforms.resolution.value.set(window.innerWidth, window.innerHeight);
+    });
+
+    // Animation loop
+    function animate() {
+      tbControls.update();
+      composer.render();
+      requestAnimationFrame(animate);
+    }
+
+    animate();
+  </script>
+</body>
+</html>
