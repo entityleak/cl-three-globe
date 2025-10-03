@@ -130,7 +130,7 @@ async function loadPatternImageScaled(scale = 1) {
 			resolve(imageData);
 		};
 		img.onerror = reject;
-		img.src = '/dot_149.png';
+		img.src = '/static/dot_149.png';
 	});
 }
 
@@ -192,7 +192,7 @@ async function loadPatternImage() {
 			resolve(imageData);
 		};
 		img.onerror = reject;
-		img.src = '/dot_149.png';
+		img.src = '/static/dot_149.png';
 	});
 }
 

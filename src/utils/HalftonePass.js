@@ -28,12 +28,20 @@ export class HalftonePass extends Pass {
   }
 
   setParams(params) {
-    if (params.pixelSize !== undefined) this.uniforms.pixelSize.value = params.pixelSize;
-    if (params.shape !== undefined) this.uniforms.shape.value = params.shape;
-    if (params.rotationAngle !== undefined) this.uniforms.rotationAngle.value = params.rotationAngle;
+    if (params.patternSize !== undefined) this.uniforms.patternSize.value = params.patternSize;
+    if (params.threshold !== undefined) this.uniforms.threshold.value = params.threshold;
+    if (params.contrast !== undefined) this.uniforms.contrast.value = params.contrast;
+    if (params.exposure !== undefined) this.uniforms.exposure.value = params.exposure;
+    if (params.invert !== undefined) this.uniforms.invert.value = params.invert;
     if (params.greyscale !== undefined) this.uniforms.greyscale.value = params.greyscale;
     if (params.blending !== undefined) this.uniforms.blending.value = params.blending;
     if (params.disable !== undefined) this.uniforms.disable.value = params.disable;
+    if (params.usePatternTexture !== undefined) this.uniforms.usePatternTexture.value = params.usePatternTexture;
+  }
+
+  setPatternTexture(texture) {
+    this.uniforms.tPattern.value = texture;
+    this.uniforms.usePatternTexture.value = texture !== null;
   }
 
   render(renderer, writeBuffer, readBuffer) {

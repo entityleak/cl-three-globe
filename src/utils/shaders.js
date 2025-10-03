@@ -171,13 +171,17 @@ export const setExtendedMaterialUniforms = (material, uniformsFn = u => u) => {
 export const halftoneShader = {
   uniforms: {
     tDiffuse: { value: null },
+    tPattern: { value: null },
     resolution: { value: null },
-    pixelSize: { value: 6.0 },
-    shape: { value: 1.0 }, // 0 = circle, 1 = square, 2 = diamond
-    rotationAngle: { value: 0.785398 }, // 45 degrees in radians
-    greyscale: { value: false },
+    patternSize: { value: 8.0 },
+    threshold: { value: 0.5 },
+    contrast: { value: 1.0 },
+    exposure: { value: 0.0 },
+    invert: { value: false },
+    greyscale: { value: true },
     blending: { value: 1.0 },
-    disable: { value: false }
+    disable: { value: false },
+    usePatternTexture: { value: false }
   },
   vertexShader: `
     varying vec2 vUv;
@@ -188,13 +192,17 @@ export const halftoneShader = {
   `,
   fragmentShader: `
     uniform sampler2D tDiffuse;
+    uniform sampler2D tPattern;
     uniform vec2 resolution;
-    uniform float pixelSize;
-    uniform float shape;
-    uniform float rotationAngle;
+    uniform float patternSize;
+    uniform float threshold;
+    uniform float contrast;
+    uniform float exposure;
+    uniform bool invert;
     uniform bool greyscale;
     uniform float blending;
     uniform bool disable;
+    uniform bool usePatternTexture;
 
     varying vec2 vUv;
 
@@ -202,25 +210,23 @@ export const halftoneShader = {
       return dot(color, vec3(0.299, 0.587, 0.114));
     }
 
-    vec2 rotate(vec2 v, float angle) {
-      float s = sin(angle);
-      float c = cos(angle);
-      mat2 m = mat2(c, -s, s, c);
-      return m * v;
+    // Generate procedural dither patterns
+    float generateDotPattern(vec2 coord) {
+      vec2 center = fract(coord) - 0.5;
+      return 1.0 - smoothstep(0.0, 0.5, length(center));
     }
 
-    float circle(vec2 coord, float radius) {
-      return 1.0 - smoothstep(radius - 0.1, radius + 0.1, length(coord));
+    float generateLinePattern(vec2 coord) {
+      return sin(coord.y * 6.28318) * 0.5 + 0.5;
     }
 
-    float square(vec2 coord, float size) {
-      vec2 d = abs(coord) - vec2(size);
-      return 1.0 - smoothstep(-0.1, 0.1, max(d.x, d.y));
+    float generateGridPattern(vec2 coord) {
+      vec2 grid = abs(fract(coord) - 0.5);
+      return smoothstep(0.4, 0.5, max(grid.x, grid.y));
     }
 
-    float diamond(vec2 coord, float size) {
-      float d = abs(coord.x) + abs(coord.y) - size;
-      return 1.0 - smoothstep(-0.1, 0.1, d);
+    float generateNoisePattern(vec2 coord) {
+      return fract(sin(dot(coord, vec2(12.9898, 78.233))) * 43758.5453);
     }
 
     void main() {
@@ -229,32 +235,46 @@ export const halftoneShader = {
         return;
       }
 
-      vec2 coord = vUv * resolution;
-      vec2 rotatedCoord = rotate(coord, rotationAngle);
+      vec4 tex = texture2D(tDiffuse, vUv);
 
-      vec2 grid = floor(rotatedCoord / pixelSize) * pixelSize;
-      vec2 cellCenter = grid + pixelSize * 0.5;
-      vec2 cellCoord = (rotatedCoord - cellCenter) / (pixelSize * 0.5);
+      // Apply exposure and contrast adjustments (like imageProcessor.js)
+      vec3 color = tex.rgb;
 
-      vec2 sampleCoord = rotate(cellCenter, -rotationAngle) / resolution;
-      sampleCoord = clamp(sampleCoord, 0.0, 1.0);
+      // Apply exposure first (brightness adjustment)
+      float exposureFactor = pow(2.0, exposure);
+      color *= exposureFactor;
 
-      vec4 tex = texture2D(tDiffuse, sampleCoord);
-      float intensity = greyscale ? luma(tex.rgb) : (tex.r + tex.g + tex.b) / 3.0;
+      // Apply contrast (around midpoint 0.5)
+      color = ((color - 0.5) * contrast) + 0.5;
+      color = clamp(color, 0.0, 1.0);
 
-      float dotSize = intensity * 0.8 + 0.1;
-      float mask;
+      // Get pixel brightness
+      float brightness = greyscale ? luma(color) : (color.r + color.g + color.b) / 3.0;
 
-      if (shape < 0.5) {
-        mask = circle(cellCoord, dotSize);
-      } else if (shape < 1.5) {
-        mask = square(cellCoord, dotSize);
+      // Get pattern threshold
+      vec2 patternCoord = vUv * resolution / patternSize;
+      float patternThreshold;
+
+      if (usePatternTexture && tPattern != tDiffuse) {
+        // Use external pattern texture (like dot_149.png)
+        vec2 patternUV = fract(patternCoord);
+        vec4 patternSample = texture2D(tPattern, patternUV);
+        patternThreshold = luma(patternSample.rgb);
       } else {
-        mask = diamond(cellCoord, dotSize);
+        // Use procedural pattern (dots by default)
+        patternThreshold = generateDotPattern(patternCoord) * threshold;
       }
 
-      vec3 halftoneColor = tex.rgb * mask;
-      vec3 finalColor = mix(tex.rgb, halftoneColor, blending);
+      // Apply dithering: if brightness > pattern threshold, use white; else black
+      float ditherResult = brightness > patternThreshold ? 1.0 : 0.0;
+
+      // Apply inversion if enabled
+      if (invert) {
+        ditherResult = 1.0 - ditherResult;
+      }
+
+      vec3 ditherColor = vec3(ditherResult);
+      vec3 finalColor = mix(color, ditherColor, blending);
 
       gl_FragColor = vec4(finalColor, tex.a);
     }
