@@ -1,3 +1,10 @@
+
+This is a fork of vasturiano.github.io/three-globe.
+
+The main code is in index.html, including shaders and threejs scene.
+
+Run `npm run dev` to serve the index.html file on a local server.
+
 ThreeJS Globe Visualization
 ===========================
 

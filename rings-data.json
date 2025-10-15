@@ -1,0 +1,65 @@
+[
+  {
+    "name": "Example",
+    "lat": 40.7128,
+    "lng": -74.0060,
+    "maxR": 30,
+    "propagationSpeed": 10,
+    "repeatPeriod": 1000,
+    "color": "rgba(255,100,50,1)"
+  },
+  {
+    "name": "Example",
+    "lat": 51.5074,
+    "lng": -0.1278,
+    "maxR": 30,
+    "propagationSpeed": 2,
+    "repeatPeriod": 1500,
+    "color": "rgba(100,200,255,1)"
+  },
+  {
+    "name": "Example",
+    "lat": 35.6762,
+    "lng": 139.6503,
+    "maxR": 30,
+    "propagationSpeed": 2.5,
+    "repeatPeriod": 1200,
+    "color": "rgba(255,150,200,1)"
+  },
+  {
+    "name": "Example",
+    "lat": -33.8688,
+    "lng": 151.2093,
+    "maxR": 30,
+    "propagationSpeed": 4,
+    "repeatPeriod": 800,
+    "color": "rgba(150,255,100,1)"
+  },
+  {
+    "name": "Example",
+    "lat": 48.8566,
+    "lng": 2.3522,
+    "maxR": 30,
+    "propagationSpeed": 3.5,
+    "repeatPeriod": 1100,
+    "color": "rgba(255,200,100,1)"
+  },
+  {
+    "name": "Example",
+    "lat": 55.7558,
+    "lng": 37.6173,
+    "maxR": 17,
+    "propagationSpeed": 3.2,
+    "repeatPeriod": 1300,
+    "color": "rgba(255,255,100,1)"
+  },
+  {
+    "name": "Example",
+    "lat": 1.3521,
+    "lng": 103.8198,
+    "maxR": 20,
+    "propagationSpeed": 4.5,
+    "repeatPeriod": 700,
+    "color": "rgba(100,255,255,1)"
+  }
+]

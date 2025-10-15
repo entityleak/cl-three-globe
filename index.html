@@ -55,7 +55,7 @@
     <div class="control-group">
       <label>Pattern Size:</label>
       <input type="range" id="patternSize" min="2" max="32" value="8" step="1">
-      <span id="patternSizeValue">3</span>
+      <span id="patternSizeValue">5</span>
     </div>
 
     <div class="control-group">
@@ -106,13 +106,19 @@
       <label>Enable Effect:</label>
       <input type="checkbox" id="enable" checked>
     </div>
+
+    <div class="control-group">
+      <label>Black Overlay:</label>
+      <input type="range" id="blackOverlay" min="0" max="1" value="0" step="0.05">
+      <span id="blackOverlayValue">0.85</span>
+    </div>
   </div>
 
   <script type="module">
     import ThreeGlobe from 'https://esm.sh/three-globe@2.44.0?external=three';
     import * as THREE from 'three';
-    import { TrackballControls } from 'three/addons/controls/TrackballControls.js';
-    import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+    import { TrackballControls } from 'three/addons/controls/TrackballControls.js';    import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
     import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
     import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 
@@ -121,15 +127,16 @@
       uniforms: {
         tDiffuse: { value: null },
         resolution: { value: new THREE.Vector2() },
-        patternSize: { value: 3.0 },
-        threshold: { value: 0.5 },
-        contrast: { value: 1.1 },
-        exposure: { value: -1.0 },
+        patternSize: { value: 5.0 },
+        threshold: { value: 1 },
+        contrast: { value: 1.08 },
+        exposure: { value: -0.5 },
         invert: { value: false },
         greyscale: { value: true },
         blending: { value: 1.0 },
         disable: { value: false },
-        patternType: { value: 0.0 } // 0=dots, 1=lines, 2=grid, 3=noise
+        patternType: { value: 0.0 }, // 0=dots, 1=lines, 2=grid, 3=noise
+        blackOverlay: { value: 0.85 } // 0=transparent, 1=full black
       },
       vertexShader: `
         varying vec2 vUv;
@@ -150,6 +157,7 @@
         uniform float blending;
         uniform bool disable;
         uniform float patternType;
+        uniform float blackOverlay;
 
         varying vec2 vUv;
 
@@ -225,32 +233,33 @@
           vec3 ditherColor = vec3(ditherResult);
           vec3 finalColor = mix(color, ditherColor, blending);
 
+          // Apply black overlay on top of everything
+          finalColor = mix(finalColor, vec3(0.0), blackOverlay);
+
           gl_FragColor = vec4(finalColor, tex.a);
         }
       `
     };
 
-    // Generate random data for globe
-    const N = 15;
-    const gData = [...Array(N).keys()].map(() => ({
-      lat: (Math.random() - 0.5) * 180,
-      lng: (Math.random() - 0.5) * 360,
-      maxR: Math.random() * 20 + 3,
-      propagationSpeed: (Math.random() - 0.5) * 20 + 1,
-      repeatPeriod: Math.random() * 2000 + 200
-    }));
-
-    const colorInterpolator = t => `rgba(255,100,50,${1-t})`;
+    // Load ring data from JSON file
+    const response = await fetch('rings-data.json');
+    const gData = await response.json();
 
     // Create globe
     const Globe = new ThreeGlobe()
-      .globeImageUrl('/static/earth-dark.jpg')
+      .globeImageUrl('/static/earth-combined.jpg')
       .bumpImageUrl('//cdn.jsdelivr.net/npm/three-globe/example/img/earth-topology.png')
       .ringsData(gData)
-      .ringColor(() => colorInterpolator)
+      .ringColor(d => {
+        // Create color interpolator that fades out
+        const baseColor = d.color;
+        return t => baseColor.replace(/[\d.]+\)$/, `${1-t})`);
+      })
       .ringMaxRadius('maxR')
       .ringPropagationSpeed('propagationSpeed')
-      .ringRepeatPeriod('repeatPeriod');
+      .ringRepeatPeriod('repeatPeriod')
+      .atmosphereColor('#7E7E7E')
+      .atmosphereAltitude(0.5);
 
     // Setup renderer
     const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -268,13 +277,33 @@
     const camera = new THREE.PerspectiveCamera();
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
-    camera.position.z = 500;
+    camera.position.z = 400;
 
-    // Add camera controls
-    const tbControls = new TrackballControls(camera, renderer.domElement);
-    tbControls.minDistance = 101;
-    tbControls.rotateSpeed = 5;
-    tbControls.zoomSpeed = 0.8;
+    // Add camera controls - restrict to horizontal rotation only
+    const cameraControls = new TrackballControls(camera, renderer.domElement);
+    cameraControls.minDistance = 101;
+    cameraControls.maxDistance = 500;
+    cameraControls.rotateSpeed = 2;
+    cameraControls.zoomSpeed = 0.8;
+    cameraControls.enablePan = false;
+
+    // Lock vertical rotation - keep camera on horizontal plane
+    // cameraControls.minPolarAngle = Math.PI / 2; // 90 degrees
+    // cameraControls.maxPolarAngle = Math.PI / 2; // 90 degrees
+
+    // Create separate scene for rings (render on top of post-processing)
+    const ringsScene = new THREE.Scene();
+    const ringsContainer = new THREE.Group();
+    ringsScene.add(ringsContainer);
+
+    // Add invisible occluder sphere to hide rings on far side of globe
+    const occluderGeometry = new THREE.SphereGeometry(100, 64, 64);
+    const occluderMaterial = new THREE.MeshBasicMaterial({
+      colorWrite: false, // Don't write color, only depth
+      depthWrite: true   // Write to depth buffer to occlude rings
+    });
+    const occluderSphere = new THREE.Mesh(occluderGeometry, occluderMaterial);
+    ringsScene.add(occluderSphere);
 
     // Setup post-processing
     const composer = new EffectComposer(renderer);
@@ -295,7 +324,8 @@
       patternType: document.getElementById('patternType'),
       greyscale: document.getElementById('greyscale'),
       invert: document.getElementById('invert'),
-      enable: document.getElementById('enable')
+      enable: document.getElementById('enable'),
+      blackOverlay: document.getElementById('blackOverlay')
     };
 
     const values = {
@@ -303,7 +333,8 @@
       thresholdValue: document.getElementById('thresholdValue'),
       contrastValue: document.getElementById('contrastValue'),
       exposureValue: document.getElementById('exposureValue'),
-      blendingValue: document.getElementById('blendingValue')
+      blendingValue: document.getElementById('blendingValue'),
+      blackOverlayValue: document.getElementById('blackOverlayValue')
     };
 
     // Control event listeners
@@ -354,6 +385,12 @@
       halftonePass.uniforms.disable.value = !e.target.checked;
     });
 
+    controls.blackOverlay.addEventListener('input', (e) => {
+      const value = parseFloat(e.target.value);
+      halftonePass.uniforms.blackOverlay.value = value;
+      values.blackOverlayValue.textContent = value.toFixed(2);
+    });
+
     // Handle window resize
     window.addEventListener('resize', () => {
       camera.aspect = window.innerWidth / window.innerHeight;
@@ -363,10 +400,61 @@
       halftonePass.uniforms.resolution.value.set(window.innerWidth, window.innerHeight);
     });
 
+    // Helper function to move rings to separate scene
+    function moveRingsToSeparateScene() {
+      // Sync the container with Globe's transform
+      ringsContainer.position.copy(Globe.position);
+      ringsContainer.rotation.copy(Globe.rotation);
+      ringsContainer.scale.copy(Globe.scale);
+
+      const ringsToMove = [];
+      Globe.traverse((obj) => {
+        if (obj.__globeObjType === 'ring') {
+          ringsToMove.push({ ring: obj, parent: obj.parent });
+        }
+      });
+
+      ringsToMove.forEach(({ ring, parent }) => {
+        if (!parent) return;
+
+        // Store local transform
+        const localPos = ring.position.clone();
+        const localRot = ring.rotation.clone();
+        const localScale = ring.scale.clone();
+
+        // Move to ringsContainer
+        parent.remove(ring);
+        ringsContainer.add(ring);
+
+        // Restore local transform
+        ring.position.copy(localPos);
+        ring.rotation.copy(localRot);
+        ring.scale.copy(localScale);
+      });
+    }
+
+    // Auto-rotation
+    const autoRotateSpeed = -0.1; // Degrees per frame
+
     // Animation loop
     function animate() {
-      tbControls.update();
+      cameraControls.update();
+
+      // Auto-rotate the globe
+      Globe.rotation.y += autoRotateSpeed * Math.PI / 180;
+
+      // Move rings to separate scene and sync transforms every frame
+      moveRingsToSeparateScene();
+
+      // Render main scene with post-processing
       composer.render();
+
+      // Render rings on top without post-processing
+      renderer.autoClear = false;
+      renderer.clearDepth();
+      renderer.render(ringsScene, camera);
+      renderer.autoClear = true;
+
       requestAnimationFrame(animate);
     }
 
