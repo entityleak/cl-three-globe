@@ -1,30 +1,23 @@
 [
   {
-    "name": "Example",
-    "lat": 40.7128,
-    "lng": -74.0060,
+    "name": "Sony",
+    "logo": "/static/sony.png",
+    "lat": 35.6762,
+    "lng": 139.6503,
     "maxR": 30,
     "propagationSpeed": 10,
     "repeatPeriod": 1000,
     "color": "rgba(255,100,50,1)"
   },
   {
-    "name": "Example",
-    "lat": 51.5074,
-    "lng": -0.1278,
+    "name": "Ondo Finance",
+    "logo": "/static/ondo.png",
+    "lat": 40.705,
+    "lng": 73.975,
     "maxR": 30,
     "propagationSpeed": 2,
     "repeatPeriod": 1500,
     "color": "rgba(100,200,255,1)"
-  },
-  {
-    "name": "Example",
-    "lat": 35.6762,
-    "lng": 139.6503,
-    "maxR": 30,
-    "propagationSpeed": 2.5,
-    "repeatPeriod": 1200,
-    "color": "rgba(255,150,200,1)"
   },
   {
     "name": "Example",
