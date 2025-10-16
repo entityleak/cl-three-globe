@@ -242,11 +242,11 @@
     };
 
     // Load ring data from JSON file
-    const response = await fetch('rings-data.json');
+    const response = await fetch('./rings-data.json');
     const gData = await response.json();
 
-    // Create globe
-    const Globe = new ThreeGlobe()
+    // Create globe with custom animation disabled
+    const Globe = new ThreeGlobe({ animateIn: false })
       .globeImageUrl('/static/earth-combined.jpg')
       .bumpImageUrl('//cdn.jsdelivr.net/npm/three-globe/example/img/earth-topology.png')
       .ringsData(gData)
@@ -261,6 +261,20 @@
       .atmosphereColor('#7E7E7E')
       .atmosphereAltitude(0.5);
 
+    // Custom intro animation
+    const targetRotation = (100 * Math.PI) / 180; // Show North America (lng ~-100)
+    const targetCameraZ = 650; // Final camera distance (matches camera.position.z below)
+    const introAnimation = {
+      active: true,
+      startTime: Date.now(),
+      duration: 1000, // 1 second
+      initialRotation: Math.PI * 2 + targetRotation, // Start rotated 360 degrees + target
+      targetRotation: targetRotation, // End rotation to show North America
+      initialScale: 0.001, // Start very small
+      initialCameraZ: 1200, // Start camera far away
+      targetCameraZ: targetCameraZ // End camera distance
+    };
+
     // Setup renderer
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
@@ -274,15 +288,19 @@
     scene.add(new THREE.DirectionalLight(0xffffff, 0.6 * Math.PI));
 
     // Setup camera
-    const camera = new THREE.PerspectiveCamera();
-    camera.aspect = window.innerWidth / window.innerHeight;
+    const camera = new THREE.PerspectiveCamera(
+      30, // FOV in degrees (default is 50, lower = more telephoto/zoomed)
+      window.innerWidth / window.innerHeight, // aspect ratio
+      0.1, // near clipping plane
+      1000 // far clipping plane
+    );
     camera.updateProjectionMatrix();
-    camera.position.z = 400;
+    camera.position.z = 800;
 
     // Add camera controls - restrict to horizontal rotation only
     const cameraControls = new TrackballControls(camera, renderer.domElement);
-    cameraControls.minDistance = 101;
-    cameraControls.maxDistance = 500;
+    cameraControls.minDistance = targetCameraZ;
+    cameraControls.maxDistance = targetCameraZ+0.0001;
     cameraControls.rotateSpeed = 2;
     cameraControls.zoomSpeed = 0.8;
     cameraControls.enablePan = false;
@@ -489,7 +507,7 @@
         const offsetDirection = upComponent > 0 ? 1 : -1;
 
         // Offset in world space along camera up direction
-        const offsetDistance = 40; // World units
+        const offsetDistance = 50; // World units
         const worldLogoPos = worldGlobePos.clone().add(cameraUp.clone().multiplyScalar(offsetDistance * offsetDirection));
 
         // Convert world logo position to local space of logoGroup
@@ -556,8 +574,35 @@
     function animate() {
       cameraControls.update();
 
-      // Auto-rotate the globe
-      Globe.rotation.y += autoRotateSpeed * Math.PI / 180;
+      // Custom intro animation
+      if (introAnimation.active) {
+        const elapsed = Date.now() - introAnimation.startTime;
+        const progress = Math.min(elapsed / introAnimation.duration, 1);
+
+        // Easing function (ease out quad)
+        const eased = 1 - Math.pow(1 - progress, 3);
+
+        // Animate globe scale (zoom in)
+        const scale = introAnimation.initialScale + (1 - introAnimation.initialScale) * eased;
+        Globe.scale.set(scale, scale, scale);
+
+        // Animate globe rotation (spin from initial to target)
+        Globe.rotation.y = introAnimation.initialRotation - (introAnimation.initialRotation - introAnimation.targetRotation) * eased;
+
+        // Animate camera zoom
+        camera.position.z = introAnimation.initialCameraZ - (introAnimation.initialCameraZ - introAnimation.targetCameraZ) * eased;
+
+        // End animation when complete
+        if (progress >= 1) {
+          introAnimation.active = false;
+          Globe.scale.set(1, 1, 1);
+          Globe.rotation.y = introAnimation.targetRotation;
+          camera.position.z = introAnimation.targetCameraZ;
+        }
+      } else {
+        // Auto-rotate the globe (only after intro)
+        Globe.rotation.y += autoRotateSpeed * Math.PI / 180;
+      }
 
       // Move rings to separate scene and sync transforms every frame
       moveRingsToSeparateScene();

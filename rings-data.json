@@ -13,14 +13,15 @@
     "name": "Ondo Finance",
     "logo": "/static/ondo.png",
     "lat": 40.705,
-    "lng": 73.975,
+    "lng": -73.975,
     "maxR": 30,
     "propagationSpeed": 2,
     "repeatPeriod": 1500,
     "color": "rgba(100,200,255,1)"
   },
   {
-    "name": "Example",
+    "name": "Ripple",
+    "logo": "/static/ripple.png",
     "lat": -33.8688,
     "lng": 151.2093,
     "maxR": 30,
@@ -29,9 +30,10 @@
     "color": "rgba(150,255,100,1)"
   },
   {
-    "name": "Example",
-    "lat": 48.8566,
-    "lng": 2.3522,
+    "name": "Figure",
+    "logo": "/static/figure.png",
+    "lat": 37.77,
+    "lng": -122.42,
     "maxR": 30,
     "propagationSpeed": 3.5,
     "repeatPeriod": 1100,
