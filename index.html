@@ -55,40 +55,41 @@
     <div class="control-group">
       <label>Pattern Size:</label>
       <input type="range" id="patternSize" min="2" max="32" value="8" step="1">
-      <span id="patternSizeValue">5</span>
+      <span id="patternSizeValue">---</span>
     </div>
 
     <div class="control-group">
       <label>Threshold:</label>
       <input type="range" id="threshold" min="0" max="1" value="0.5" step="0.05">
-      <span id="thresholdValue">0.5</span>
+      <span id="thresholdValue">---</span>
     </div>
 
     <div class="control-group">
       <label>Contrast:</label>
       <input type="range" id="contrast" min="0.5" max="3" value="1" step="0.1">
-      <span id="contrastValue">1.1</span>
+      <span id="contrastValue">---</span>
     </div>
 
     <div class="control-group">
       <label>Exposure:</label>
       <input type="range" id="exposure" min="-2" max="2" value="0" step="0.1">
-      <span id="exposureValue">-1.0</span>
+      <span id="exposureValue">---</span>
     </div>
 
     <div class="control-group">
       <label>Blending:</label>
       <input type="range" id="blending" min="0" max="1" value="1" step="0.1">
-      <span id="blendingValue">1.0</span>
+      <span id="blendingValue">---</span>
     </div>
 
     <div class="control-group">
       <label>Pattern Type:</label>
       <select id="patternType">
-        <option value="dots" selected>Dots</option>
+        <option value="dots" selected>Dots Procedural</option>
         <option value="lines">Lines</option>
         <option value="grid">Grid</option>
         <option value="noise">Noise</option>
+        <option value="dotsTexture">Dots Texture</option>
       </select>
     </div>
 
@@ -122,21 +123,29 @@
     import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
     import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
 
+    // Load dot pattern texture
+    const dotPatternTexture = new THREE.TextureLoader().load('/static/dot_149.png');
+    dotPatternTexture.wrapS = THREE.RepeatWrapping;
+    dotPatternTexture.wrapT = THREE.RepeatWrapping;
+    dotPatternTexture.minFilter = THREE.NearestFilter;
+    dotPatternTexture.magFilter = THREE.NearestFilter;
+
     // Pattern-based dithering shader (matching imageProcessor.js functionality)
     const HalftoneShader = {
       uniforms: {
         tDiffuse: { value: null },
+        tPattern: { value: dotPatternTexture }, // Dot pattern texture
         resolution: { value: new THREE.Vector2() },
         patternSize: { value: 5.0 },
         threshold: { value: 1 },
-        contrast: { value: 1.08 },
-        exposure: { value: -0.5 },
+        contrast: { value: 1.0 },
+        exposure: { value: 0.5 },
         invert: { value: false },
         greyscale: { value: true },
         blending: { value: 1.0 },
         disable: { value: false },
-        patternType: { value: 0.0 }, // 0=dots, 1=lines, 2=grid, 3=noise
-        blackOverlay: { value: 0.85 } // 0=transparent, 1=full black
+        patternType: { value: 4.0 }, // 0=dots procedural, 1=lines, 2=grid, 3=noise, 4=dots texture
+        blackOverlay: { value: 0.8 } // 0=transparent, 1=full black
       },
       vertexShader: `
         varying vec2 vUv;
@@ -147,6 +156,7 @@
       `,
       fragmentShader: `
         uniform sampler2D tDiffuse;
+        uniform sampler2D tPattern;
         uniform vec2 resolution;
         uniform float patternSize;
         uniform float threshold;
@@ -216,8 +226,13 @@
             patternThreshold = generateLinePattern(patternCoord);
           } else if (patternType < 2.5) {
             patternThreshold = generateGridPattern(patternCoord);
-          } else {
+          } else if (patternType < 3.5) {
             patternThreshold = generateNoisePattern(patternCoord);
+          } else {
+            // Texture-based dot pattern (dot_149.png)
+            vec2 textureCoord = vUv * resolution / patternSize;
+            vec4 patternSample = texture2D(tPattern, textureCoord);
+            patternThreshold = patternSample.r; // Use red channel as threshold
           }
 
           patternThreshold *= threshold;
@@ -387,7 +402,7 @@
     });
 
     controls.patternType.addEventListener('change', (e) => {
-      const patternMap = { 'dots': 0, 'lines': 1, 'grid': 2, 'noise': 3 };
+      const patternMap = { 'dots': 0, 'lines': 1, 'grid': 2, 'noise': 3, 'dotsTexture': 4 };
       halftonePass.uniforms.patternType.value = patternMap[e.target.value];
     });
 
