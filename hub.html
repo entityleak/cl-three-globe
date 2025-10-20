@@ -2,11 +2,18 @@
 <html>
 <head>
   <style>
+    @font-face {
+      font-family: 'The Future';
+      src: url('/static/the-future-regular.woff2') format('woff2');
+      font-weight: 400;
+    }
+
     body {
       margin: 0;
       background: #000;
       color: white;
       font-family: Arial, sans-serif;
+      -webkit-font-smoothing:antialiased;
     }
 
     #controls {
@@ -38,6 +45,100 @@
       color: white;
       border: 1px solid #555;
     }
+
+    .mock-ui{
+      position: absolute;
+      bottom: 45vh;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 100;
+
+    }
+
+    .mock-ui .copy{
+      font-size: 24px;
+      text-align: center;
+      font-family: 'The Future';
+    }
+
+    /* Pill buttons */
+    #pill-buttons {
+      display: flex;
+      gap: 5px;
+      flex-wrap: wrap;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .pill-button {
+      height: 42.5px;
+      padding: 17.11px;
+      border-radius: 29.25px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 6.25px;
+      cursor: pointer;
+      transition: transform 0.2s, opacity 0.2s;
+      font-family: 'The Future', Arial, sans-serif;
+      font-size: 15.4px;
+      line-height: 23.1px;
+      letter-spacing: 0.15px;
+      box-sizing: border-box;
+      text-align: center;
+    }
+
+    .pill-button:hover {
+      transform: scale(1.05);
+    }
+
+    .pill-hub {
+      background: white;
+      color: black;
+      padding-left: 10px;
+      padding-right: 15px;
+    }
+
+    .pill-atom {
+      background: #4B47CA;
+      color: white;
+      padding-left: 36.78px;
+      padding-right: 36.78px;
+    }
+
+    .pill-services {
+      background: #22E2A8;
+      color: black;
+      padding-left: 17.11px;
+      padding-right: 25.66px;
+    }
+
+    .pill-developers {
+      background: #E644F8;
+      color: black;
+      padding-left: 17.11px;
+      padding-right: 25.66px;
+    }
+
+    .pill-validators {
+      background: #EF5628;
+      color: black;
+      padding-left: 17.11px;
+      padding-right: 25.66px;
+    }
+
+    .pill-icon {
+      width: 24px;
+      height: 24px;
+      position: relative;
+    }
+
+    .pill-dot {
+      position: absolute;
+      width: 2.4px;
+      height: 2.4px;
+      background: currentColor;
+    }
   </style>
 
   <script type="importmap">{ "imports": {
@@ -48,6 +149,35 @@
 
 <body>
   <div id="globeViz"></div>
+  
+  <div class="mock-ui">
+  <div class="copy">
+    <p>The Cosmos Hub is the first blockchain to use the Cosmos stack in production. Today, it is the heartbeat of the community in Cosmos.</p>
+  </div>
+  <!-- Pill buttons -->
+  <div id="pill-buttons">
+    <div class="pill-button pill-hub" data-rotation="0" data-color="#FFFFFF">
+      <span>Hub</span>
+    </div>
+
+    <div class="pill-button pill-atom" data-rotation="72" data-color="#4B47CA">
+      <span>ATOM</span>
+    </div>
+
+    <div class="pill-button pill-services" data-rotation="144" data-color="#22E2A8">
+      <span>Services</span>
+    </div>
+
+    <div class="pill-button pill-developers" data-rotation="216" data-color="#E644F8">
+      <span>Contract Developers</span>
+    </div>
+
+    <div class="pill-button pill-validators" data-rotation="288" data-color="#EF5628">
+      <span>Validators</span>
+    </div>
+  </div>
+  </div>
+
 
   <div id="controls">
     <h3>Halftone Controls</h3>
@@ -257,24 +387,13 @@
     };
 
     // Load ring data from JSON file
-    const response = await fetch('./rings-data.json');
-    const gData = await response.json();
 
     // Create globe with custom animation disabled
     const Globe = new ThreeGlobe({ animateIn: false })
       .globeImageUrl('/static/earth-combined.jpg')
       .bumpImageUrl('/static/earth-topology.jpg')
-      .ringsData(gData)
-      .ringColor(d => {
-        // Create color interpolator that fades out
-        const baseColor = d.color;
-        return t => baseColor.replace(/[\d.]+\)$/, `${1-t})`);
-      })
-      .ringMaxRadius('maxR')
-      .ringPropagationSpeed('propagationSpeed')
-      .ringRepeatPeriod('repeatPeriod')
       .atmosphereColor('#7E7E7E')
-      .atmosphereAltitude(0.5);
+      .atmosphereAltitude(1);
 
     // Custom intro animation
     const targetRotation = (100 * Math.PI) / 180; // Show North America (lng ~-100)
@@ -337,6 +456,17 @@
     });
     const occluderSphere = new THREE.Mesh(occluderGeometry, occluderMaterial);
     ringsScene.add(occluderSphere);
+
+    // Add color overlay sphere (renders on top of post-processing)
+    const colorOverlayGeometry = new THREE.SphereGeometry(101, 64, 64);
+    const colorOverlayMaterial = new THREE.MeshBasicMaterial({
+      color: 0xffffff,
+      transparent: true,
+      opacity: 0,
+      depthWrite: false
+    });
+    const colorOverlaySphere = new THREE.Mesh(colorOverlayGeometry, colorOverlayMaterial);
+    ringsScene.add(colorOverlaySphere);
 
     // Setup post-processing
     const composer = new EffectComposer(renderer);
@@ -444,146 +574,35 @@
       return new THREE.Vector3(x, y, z);
     }
 
-    // Create logos with connecting lines
-    const logoGroup = new THREE.Group();
-    ringsScene.add(logoGroup);
-
-    const logoObjects = []; // Store logo data for animation updates
-
-    function createLogos() {
-      gData.forEach((d) => {
-        if (d.logo) {
-          // Get position on globe surface
-          const globePos = latLngToVector3(d.lat, d.lng, 100);
-
-          // Create line (will be updated each frame)
-          const lineGeometry = new THREE.BufferGeometry();
-          const positions = new Float32Array(6); // 2 points * 3 coordinates
-          lineGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-          const lineMaterial = new THREE.LineBasicMaterial({ color: 0xffffff, opacity: 0.5, transparent: true });
-          const line = new THREE.Line(lineGeometry, lineMaterial);
-          logoGroup.add(line);
-
-          // Create sprite for logo
-          const textureLoader = new THREE.TextureLoader();
-          textureLoader.load(d.logo, (texture) => {
-            // Preserve texture quality
-            texture.minFilter = THREE.LinearFilter;
-            texture.magFilter = THREE.LinearFilter;
-
-            const spriteMaterial = new THREE.SpriteMaterial({
-              map: texture,
-              sizeAttenuation: true, // Size changes with distance
-              depthTest: true,
-              depthWrite: false
-            });
-            const sprite = new THREE.Sprite(spriteMaterial);
-
-            // Preserve aspect ratio based on texture dimensions
-            const aspectRatio = texture.image.width / texture.image.height;
-            const size = 20; // Base size (reduced from 50)
-            sprite.scale.set(size * aspectRatio, size, 1);
-
-            logoGroup.add(sprite);
-
-            // Store for updates
-            logoObjects.push({
-              globePos: globePos,
-              sprite: sprite,
-              line: line,
-              data: d
-            });
-          });
-        }
-      });
-    }
-
-    createLogos();
-
-    // Update logo positions to extend vertically in screen space
-    function updateLogoPositions() {
-      if (logoObjects.length === 0) return;
-
-      // Update all matrices first
-      scene.updateMatrixWorld(true);
-      ringsScene.updateMatrixWorld(true);
-      logoGroup.updateMatrixWorld(true);
-
-      logoObjects.forEach(({ globePos, sprite, line }, index) => {
-        // Get world position of the point on globe (globePos is already in logoGroup local space)
-        const worldGlobePos = globePos.clone();
-        worldGlobePos.applyMatrix4(logoGroup.matrixWorld);
-
-        // Get camera's up vector in world space (always points "up" in screen space)
-        const cameraUp = new THREE.Vector3(0, 1, 0).applyQuaternion(camera.quaternion);
-
-        // Determine if we should go up or down based on position relative to camera
-        const upComponent = worldGlobePos.clone().sub(camera.position).dot(cameraUp);
-        const offsetDirection = upComponent > 0 ? 1 : -1;
-
-        // Offset in world space along camera up direction
-        const offsetDistance = 50; // World units
-        const worldLogoPos = worldGlobePos.clone().add(cameraUp.clone().multiplyScalar(offsetDistance * offsetDirection));
-
-        // Convert world logo position to local space of logoGroup
-        const inverseMatrix = new THREE.Matrix4().copy(logoGroup.matrixWorld).invert();
-        const localLogoPos = worldLogoPos.clone().applyMatrix4(inverseMatrix);
-
-        // Set sprite position
-        sprite.position.copy(localLogoPos);
-
-        // Update line (both positions in local space)
-        const positions = line.geometry.attributes.position.array;
-        positions[0] = globePos.x;
-        positions[1] = globePos.y;
-        positions[2] = globePos.z;
-        positions[3] = localLogoPos.x;
-        positions[4] = localLogoPos.y;
-        positions[5] = localLogoPos.z;
-        line.geometry.attributes.position.needsUpdate = true;
-      });
-    }
-
-    // Helper function to move rings to separate scene
-    function moveRingsToSeparateScene() {
-      // Sync the container with Globe's transform
-      ringsContainer.position.copy(Globe.position);
-      ringsContainer.rotation.copy(Globe.rotation);
-      ringsContainer.scale.copy(Globe.scale);
-
-      // Sync logo group with Globe's transform
-      logoGroup.position.copy(Globe.position);
-      logoGroup.rotation.copy(Globe.rotation);
-      logoGroup.scale.copy(Globe.scale);
-
-      const ringsToMove = [];
-      Globe.traverse((obj) => {
-        if (obj.__globeObjType === 'ring') {
-          ringsToMove.push({ ring: obj, parent: obj.parent });
-        }
-      });
-
-      ringsToMove.forEach(({ ring, parent }) => {
-        if (!parent) return;
-
-        // Store local transform
-        const localPos = ring.position.clone();
-        const localRot = ring.rotation.clone();
-        const localScale = ring.scale.clone();
-
-        // Move to ringsContainer
-        parent.remove(ring);
-        ringsContainer.add(ring);
-
-        // Restore local transform
-        ring.position.copy(localPos);
-        ring.rotation.copy(localRot);
-        ring.scale.copy(localScale);
-      });
-    }
-
     // Auto-rotation
     const autoRotateSpeed = -0.01; // Degrees per frame
+
+    // Pill button interactions
+    const pillButtons = document.querySelectorAll('.pill-button');
+    let targetGlobeRotation = introAnimation.targetRotation;
+    let currentHoverColor = null;
+    let colorOverlayOpacity = 0;
+    const rotationSpeed = 0.1; // How fast to interpolate rotation
+    const colorFadeSpeed = 0.05; // How fast to fade color overlay
+
+    pillButtons.forEach(button => {
+      button.addEventListener('mouseenter', (e) => {
+        const rotation = parseFloat(e.currentTarget.dataset.rotation);
+        const color = e.currentTarget.dataset.color;
+
+        // Set target rotation (convert degrees to radians)
+        targetGlobeRotation = (rotation * Math.PI) / 180;
+
+        // Set target color overlay
+        currentHoverColor = new THREE.Color(color);
+        colorOverlayOpacity = 0.6; // Target opacity
+      });
+
+      button.addEventListener('mouseleave', () => {
+        // Fade out color overlay
+        colorOverlayOpacity = 0;
+      });
+    });
 
     // Animation loop
     function animate() {
@@ -615,15 +634,23 @@
           camera.position.z = introAnimation.targetCameraZ;
         }
       } else {
-        // Auto-rotate the globe (only after intro)
-        Globe.rotation.y += autoRotateSpeed * Math.PI / 180;
+        // Interpolate globe rotation towards target
+        const rotationDiff = targetGlobeRotation - Globe.rotation.y;
+        Globe.rotation.y += rotationDiff * rotationSpeed;
+
+        // Auto-rotate the globe slightly when not hovering
+        if (Math.abs(rotationDiff) < 0.01) {
+          Globe.rotation.y += autoRotateSpeed * Math.PI / 180;
+          targetGlobeRotation += autoRotateSpeed * Math.PI / 180;
+        }
       }
 
-      // Move rings to separate scene and sync transforms every frame
-      moveRingsToSeparateScene();
-
-      // Update logo positions to follow screen space
-      updateLogoPositions();
+      // Interpolate color overlay
+      if (currentHoverColor) {
+        colorOverlayMaterial.color.lerp(currentHoverColor, 0.1);
+      }
+      const currentOpacity = colorOverlayMaterial.opacity;
+      colorOverlayMaterial.opacity += (colorOverlayOpacity - currentOpacity) * colorFadeSpeed;
 
       // Render main scene with post-processing
       composer.render();
