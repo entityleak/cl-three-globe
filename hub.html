@@ -448,22 +448,14 @@
     const ringsContainer = new THREE.Group();
     ringsScene.add(ringsContainer);
 
-    // Add invisible occluder sphere to hide rings on far side of globe
-    const occluderGeometry = new THREE.SphereGeometry(100, 64, 64);
-    const occluderMaterial = new THREE.MeshBasicMaterial({
-      colorWrite: false, // Don't write color, only depth
-      depthWrite: true   // Write to depth buffer to occlude rings
-    });
-    const occluderSphere = new THREE.Mesh(occluderGeometry, occluderMaterial);
-    ringsScene.add(occluderSphere);
-
     // Add color overlay sphere (renders on top of post-processing)
-    const colorOverlayGeometry = new THREE.SphereGeometry(101, 64, 64);
+    const colorOverlayGeometry = new THREE.SphereGeometry(100, 64, 64);
     const colorOverlayMaterial = new THREE.MeshBasicMaterial({
       color: 0xffffff,
       transparent: true,
       opacity: 0,
-      depthWrite: false
+      depthWrite: false,
+      blending: THREE.AdditiveBlending // Options: AdditiveBlending, MultiplyBlending, SubtractiveBlending, NormalBlending
     });
     const colorOverlaySphere = new THREE.Mesh(colorOverlayGeometry, colorOverlayMaterial);
     ringsScene.add(colorOverlaySphere);
