@@ -491,7 +491,8 @@
               globePos: globePos,
               sprite: sprite,
               line: line,
-              data: d
+              data: d,
+              offset: d.logoOffset || 100 // Use custom offset from JSON, default to 100
             });
           });
         }
@@ -509,7 +510,9 @@
       ringsScene.updateMatrixWorld(true);
       logoGroup.updateMatrixWorld(true);
 
-      logoObjects.forEach(({ globePos, sprite, line }, index) => {
+      const LOGO_EXTRA_OFFSET = 5; // Extra spacing between line end and logo graphic
+
+      logoObjects.forEach(({ globePos, sprite, line, offset }, index) => {
         // Get world position of the point on globe (globePos is already in logoGroup local space)
         const worldGlobePos = globePos.clone();
         worldGlobePos.applyMatrix4(logoGroup.matrixWorld);
@@ -521,25 +524,29 @@
         const upComponent = worldGlobePos.clone().sub(camera.position).dot(cameraUp);
         const offsetDirection = upComponent > 0 ? 1 : -1;
 
-        // Offset in world space along camera up direction
-        const offsetDistance = 50; // World units
-        const worldLogoPos = worldGlobePos.clone().add(cameraUp.clone().multiplyScalar(offsetDistance * offsetDirection));
+        // Logo position: full offset
+        const worldLogoPos = worldGlobePos.clone().add(cameraUp.clone().multiplyScalar(offset * offsetDirection));
 
-        // Convert world logo position to local space of logoGroup
+        // Line end position: offset minus extra spacing (stops short of logo)
+        const lineEndOffset = offset - LOGO_EXTRA_OFFSET;
+        const worldLineEndPos = worldGlobePos.clone().add(cameraUp.clone().multiplyScalar(lineEndOffset * offsetDirection));
+
+        // Convert world positions to local space of logoGroup
         const inverseMatrix = new THREE.Matrix4().copy(logoGroup.matrixWorld).invert();
         const localLogoPos = worldLogoPos.clone().applyMatrix4(inverseMatrix);
+        const localLineEndPos = worldLineEndPos.clone().applyMatrix4(inverseMatrix);
 
         // Set sprite position
         sprite.position.copy(localLogoPos);
 
-        // Update line (both positions in local space)
+        // Update line (both positions in local space) - line ends short of logo
         const positions = line.geometry.attributes.position.array;
         positions[0] = globePos.x;
         positions[1] = globePos.y;
         positions[2] = globePos.z;
-        positions[3] = localLogoPos.x;
-        positions[4] = localLogoPos.y;
-        positions[5] = localLogoPos.z;
+        positions[3] = localLineEndPos.x;
+        positions[4] = localLineEndPos.y;
+        positions[5] = localLineEndPos.z;
         line.geometry.attributes.position.needsUpdate = true;
       });
     }

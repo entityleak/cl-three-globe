@@ -1,13 +1,14 @@
 [
   {
-    "name": "Sony",
-    "logo": "/static/sony.png",
+    "name": "progmat",
+    "logo": "/static/progmat.png",
     "lat": 35.6762,
     "lng": 139.6503,
     "maxR": 30,
     "propagationSpeed": 10,
     "repeatPeriod": 1000,
-    "color": "rgba(255,100,50,1)"
+    "color": "rgba(255,100,50,1)",
+    "logoOffset": 60
   },
   {
     "name": "Ondo Finance",
@@ -17,7 +18,8 @@
     "maxR": 30,
     "propagationSpeed": 2,
     "repeatPeriod": 1500,
-    "color": "rgba(100,200,255,1)"
+    "color": "rgba(100,200,255,1)",
+    "logoOffset": 50
   },
   {
     "name": "Ripple",
@@ -27,7 +29,8 @@
     "maxR": 30,
     "propagationSpeed": 4,
     "repeatPeriod": 800,
-    "color": "rgba(150,255,100,1)"
+    "color": "rgba(150,255,100,1)",
+    "logoOffset": 50
   },
   {
     "name": "Figure",
@@ -37,24 +40,40 @@
     "maxR": 30,
     "propagationSpeed": 3.5,
     "repeatPeriod": 1100,
-    "color": "rgba(255,200,100,1)"
+    "color": "rgba(255,200,100,1)",
+    "logoOffset": 50
   },
   {
-    "name": "Example",
-    "lat": 55.7558,
-    "lng": 37.6173,
+    "name": "Fetch",
+    "logo": "/static/fetch.png",
+    "lat": 52.3676,
+    "lng": 4.9041,
     "maxR": 17,
     "propagationSpeed": 3.2,
     "repeatPeriod": 1300,
-    "color": "rgba(255,255,100,1)"
+    "color": "rgba(255,255,100,1)",
+    "logoOffset": 50
   },
   {
-    "name": "Example",
+    "name": "Inj",
+    "logo": "/static/injective.png",
     "lat": 1.3521,
     "lng": 103.8198,
     "maxR": 20,
     "propagationSpeed": 4.5,
     "repeatPeriod": 700,
-    "color": "rgba(100,255,255,1)"
+    "color": "rgba(100,255,255,1)",
+    "logoOffset": 50
+  },
+  {
+    "name": "toki",
+    "logo": "/static/toki.png",
+    "lat": 34.6937,
+    "lng": 135.5023,
+    "maxR": 15,
+    "propagationSpeed": 4.5,
+    "repeatPeriod": 500,
+    "color": "rgba(100,255,255,1)",
+    "logoOffset": 40
   }
 ]
