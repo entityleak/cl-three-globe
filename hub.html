@@ -184,7 +184,7 @@
 
     <div class="control-group">
       <label>Pattern Size:</label>
-      <input type="range" id="patternSize" min="2" max="32" value="8" step="1">
+      <input type="range" id="patternSize" min="2" max="32" step="1">
       <span id="patternSizeValue">---</span>
     </div>
 
@@ -260,13 +260,17 @@
     dotPatternTexture.minFilter = THREE.NearestFilter;
     dotPatternTexture.magFilter = THREE.NearestFilter;
 
+    // Detect DPI (pixel ratio)
+    const dpr = window.devicePixelRatio || 1;
+    const initialPatternSize = dpr < 2 ? 6 : 5; // Use 6 for lower DPI screens (< 2x)
+
     // Pattern-based dithering shader (matching imageProcessor.js functionality)
     const HalftoneShader = {
       uniforms: {
         tDiffuse: { value: null },
         tPattern: { value: dotPatternTexture }, // Dot pattern texture
         resolution: { value: new THREE.Vector2() },
-        patternSize: { value: 5.0 },
+        patternSize: { value: initialPatternSize },
         threshold: { value: 1 },
         contrast: { value: 1.0 },
         exposure: { value: 0.5 },
@@ -491,6 +495,10 @@
       blendingValue: document.getElementById('blendingValue'),
       blackOverlayValue: document.getElementById('blackOverlayValue')
     };
+
+    // Set initial slider value
+    controls.patternSize.value = initialPatternSize;
+    values.patternSizeValue.textContent = initialPatternSize;
 
     // Control event listeners
     controls.patternSize.addEventListener('input', (e) => {
