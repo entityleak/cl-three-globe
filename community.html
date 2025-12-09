@@ -645,8 +645,8 @@
         if (!state) return;
 
         const isHovered = hoveredSphereIndex === index;
-        const targetScale = isHovered ? 1.1 : 1.0;
-        const targetOpacity = isHovered ? 0.9 : state.originalOpacity;
+        const targetScale = isHovered ? 1.15 : 1.0;
+        const targetOpacity = isHovered ? 1 : state.originalOpacity;
 
         // Smooth scale interpolation
         const currentScale = sphere.scale.x;
