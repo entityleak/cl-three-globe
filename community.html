@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    @font-face {
+      font-family: 'The Future';
+      src: url('/static/the-future-regular.woff2') format('woff2');
+      font-weight: 400;
+    }
+
+    body {
+      margin: 0;
+      background: #000;
+      color: white;
+      font-family: Arial, sans-serif;
+      -webkit-font-smoothing:antialiased;
+    }
+
+    h1{
+      font-weight: normal;
+    }
+
+    #controls {
+      opacity: 0;
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      z-index: 100;
+      background: rgba(0,0,0,0.7);
+      padding: 15px;
+      border-radius: 5px;
+    }
+
+    .control-group {
+      margin-bottom: 10px;
+    }
+
+    label {
+      display: inline-block;
+      width: 120px;
+      font-size: 12px;
+    }
+
+    input[type="range"] {
+      width: 100px;
+    }
+
+    select {
+      background: #333;
+      color: white;
+      border: 1px solid #555;
+    }
+
+    .mock-ui{
+      position: absolute;
+      bottom: 45vh;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 100;
+
+    }
+
+    .mock-ui .copy{
+      font-size: 24px;
+      text-align: center;
+      font-family: 'The Future';
+    }
+
+    /* Pill buttons */
+    #pill-buttons {
+      display: flex;
+      gap: 5px;
+      flex-wrap: wrap;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .pill-button {
+      height: 42.5px;
+      padding: 17.11px;
+      border-radius: 29.25px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 6.25px;
+      cursor: pointer;
+      transition: transform 0.2s, opacity 0.2s;
+      font-family: 'The Future', Arial, sans-serif;
+      font-size: 15.4px;
+      line-height: 23.1px;
+      letter-spacing: 0.15px;
+      box-sizing: border-box;
+      text-align: center;
+    }
+
+    .pill-button:hover {
+      transform: scale(1.05);
+    }
+
+    .pill-hub {
+      background: white;
+      color: black;
+      padding-left: 10px;
+      padding-right: 15px;
+    }
+
+    .pill-atom {
+      background: #4B47CA;
+      color: white;
+      padding-left: 36.78px;
+      padding-right: 36.78px;
+    }
+
+    .pill-services {
+      background: #22E2A8;
+      color: black;
+      padding-left: 17.11px;
+      padding-right: 25.66px;
+    }
+
+    .pill-developers {
+      background: #E644F8;
+      color: black;
+      padding-left: 17.11px;
+      padding-right: 25.66px;
+    }
+
+    .pill-validators {
+      background: #EF5628;
+      color: black;
+      padding-left: 17.11px;
+      padding-right: 25.66px;
+    }
+
+    .pill-icon {
+      width: 24px;
+      height: 24px;
+      position: relative;
+    }
+
+    .pill-dot {
+      position: absolute;
+      width: 2.4px;
+      height: 2.4px;
+      background: currentColor;
+    }
+  </style>
+
+  <script type="importmap">{ "imports": {
+    "three": "https://esm.sh/three@0.160.0",
+    "three/": "https://esm.sh/three@0.160.0/"
+  }}</script>
+</head>
+
+<body>
+  <div id="globeViz"></div>
+  
+
+
+  <div id="controls">
+    <h3>Halftone Controls</h3>
+
+    <div class="control-group">
+      <label>Pattern Size:</label>
+      <input type="range" id="patternSize" min="2" max="32" step="1">
+      <span id="patternSizeValue">---</span>
+    </div>
+
+    <div class="control-group">
+      <label>Threshold:</label>
+      <input type="range" id="threshold" min="0" max="1" value="0.5" step="0.05">
+      <span id="thresholdValue">---</span>
+    </div>
+
+    <div class="control-group">
+      <label>Contrast:</label>
+      <input type="range" id="contrast" min="0.5" max="3" value="1" step="0.1">
+      <span id="contrastValue">---</span>
+    </div>
+
+    <div class="control-group">
+      <label>Exposure:</label>
+      <input type="range" id="exposure" min="-2" max="2" value="0" step="0.1">
+      <span id="exposureValue">---</span>
+    </div>
+
+    <div class="control-group">
+      <label>Blending:</label>
+      <input type="range" id="blending" min="0" max="1" value="1" step="0.1">
+      <span id="blendingValue">---</span>
+    </div>
+
+    <div class="control-group">
+      <label>Pattern Type:</label>
+      <select id="patternType">
+        <option value="dots" selected>Dots Procedural</option>
+        <option value="lines">Lines</option>
+        <option value="grid">Grid</option>
+        <option value="noise">Noise</option>
+        <option value="dotsTexture">Dots Texture</option>
+      </select>
+    </div>
+
+    <div class="control-group">
+      <label>Greyscale:</label>
+      <input type="checkbox" id="greyscale" checked>
+    </div>
+
+    <div class="control-group">
+      <label>Invert:</label>
+      <input type="checkbox" id="invert">
+    </div>
+
+    <div class="control-group">
+      <label>Enable Effect:</label>
+      <input type="checkbox" id="enable" checked>
+    </div>
+
+    <div class="control-group">
+      <label>Black Overlay:</label>
+      <input type="range" id="blackOverlay" min="0" max="1" value="0" step="0.05">
+      <span id="blackOverlayValue">0.85</span>
+    </div>
+  </div>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+    import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+    import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+    import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
+
+    // Load dot pattern texture
+    const dotPatternTexture = new THREE.TextureLoader().load('/static/dot_149.png');
+    dotPatternTexture.wrapS = THREE.RepeatWrapping;
+    dotPatternTexture.wrapT = THREE.RepeatWrapping;
+    dotPatternTexture.minFilter = THREE.NearestFilter;
+    dotPatternTexture.magFilter = THREE.NearestFilter;
+
+    // Detect DPI (pixel ratio)
+    const dpr = window.devicePixelRatio || 1;
+    const initialPatternSize = dpr < 2 ? 6 : 5; // Use 6 for lower DPI screens (< 2x)
+
+    // Pattern-based dithering shader (matching imageProcessor.js functionality)
+    const HalftoneShader = {
+      uniforms: {
+        tDiffuse: { value: null },
+        tPattern: { value: dotPatternTexture }, // Dot pattern texture
+        resolution: { value: new THREE.Vector2() },
+        patternSize: { value: initialPatternSize },
+        threshold: { value: 1 },
+        contrast: { value: 1.0 },
+        exposure: { value: 0.5 },
+        invert: { value: false },
+        greyscale: { value: true },
+        blending: { value: 1.0 },
+        disable: { value: false },
+        patternType: { value: 4.0 }, // 0=dots procedural, 1=lines, 2=grid, 3=noise, 4=dots texture
+        blackOverlay: { value: 0.8 } // 0=transparent, 1=full black
+      },
+      vertexShader: `
+        varying vec2 vUv;
+        void main() {
+          vUv = uv;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,
+      fragmentShader: `
+        uniform sampler2D tDiffuse;
+        uniform sampler2D tPattern;
+        uniform vec2 resolution;
+        uniform float patternSize;
+        uniform float threshold;
+        uniform float contrast;
+        uniform float exposure;
+        uniform bool invert;
+        uniform bool greyscale;
+        uniform float blending;
+        uniform bool disable;
+        uniform float patternType;
+        uniform float blackOverlay;
+
+        varying vec2 vUv;
+
+        float luma(vec3 color) {
+          return dot(color, vec3(0.299, 0.587, 0.114));
+        }
+
+        // Generate procedural dither patterns
+        float generateDotPattern(vec2 coord) {
+          vec2 center = fract(coord) - 0.5;
+          return 1.0 - smoothstep(0.0, 0.5, length(center));
+        }
+
+        float generateLinePattern(vec2 coord) {
+          return sin(coord.y * 6.28318) * 0.5 + 0.5;
+        }
+
+        float generateGridPattern(vec2 coord) {
+          vec2 grid = abs(fract(coord) - 0.5);
+          return smoothstep(0.4, 0.5, max(grid.x, grid.y));
+        }
+
+        float generateNoisePattern(vec2 coord) {
+          return fract(sin(dot(coord, vec2(12.9898, 78.233))) * 43758.5453);
+        }
+
+        void main() {
+          if (disable) {
+            gl_FragColor = texture2D(tDiffuse, vUv);
+            return;
+          }
+
+          vec4 tex = texture2D(tDiffuse, vUv);
+
+          // Apply exposure and contrast adjustments (like imageProcessor.js)
+          vec3 color = tex.rgb;
+
+          // Apply exposure first (brightness adjustment)
+          float exposureFactor = pow(2.0, exposure);
+          color *= exposureFactor;
+
+          // Apply contrast (around midpoint 0.5)
+          color = ((color - 0.5) * contrast) + 0.5;
+          color = clamp(color, 0.0, 1.0);
+
+          // Get pixel brightness
+          float brightness = greyscale ? luma(color) : (color.r + color.g + color.b) / 3.0;
+
+          // Get pattern threshold
+          vec2 patternCoord = vUv * resolution / patternSize;
+          float patternThreshold;
+
+          if (patternType < 0.5) {
+            patternThreshold = generateDotPattern(patternCoord);
+          } else if (patternType < 1.5) {
+            patternThreshold = generateLinePattern(patternCoord);
+          } else if (patternType < 2.5) {
+            patternThreshold = generateGridPattern(patternCoord);
+          } else if (patternType < 3.5) {
+            patternThreshold = generateNoisePattern(patternCoord);
+          } else {
+            // Texture-based dot pattern (dot_149.png)
+            vec2 textureCoord = vUv * resolution / patternSize;
+            vec4 patternSample = texture2D(tPattern, textureCoord);
+            patternThreshold = patternSample.r; // Use red channel as threshold
+          }
+
+          patternThreshold *= threshold;
+
+          // Apply dithering: if brightness > pattern threshold, use white; else black
+          float ditherResult = brightness > patternThreshold ? 1.0 : 0.0;
+
+          // Apply inversion if enabled
+          if (invert) {
+            ditherResult = 1.0 - ditherResult;
+          }
+
+          vec3 ditherColor = vec3(ditherResult);
+          vec3 finalColor = mix(color, ditherColor, blending);
+
+          // Apply black overlay on top of everything
+          finalColor = mix(finalColor, vec3(0.0), blackOverlay);
+
+          gl_FragColor = vec4(finalColor, tex.a);
+        }
+      `
+    };
+
+    // Load sphere configuration and create spheres
+    const spheres = [];
+    let Globe; // Reference to main sphere
+
+    async function createSpheresFromConfig() {
+      const response = await fetch('/spheres.json');
+      const sphereConfigs = await response.json();
+
+      sphereConfigs.forEach((config, index) => {
+        // Create sphere geometry and material
+        const geometry = new THREE.SphereGeometry(config.radius, 64, 64);
+        const material = new THREE.MeshPhongMaterial({
+          color: config.color,
+          specular: 0x666666,
+          shininess: 30,
+          flatShading: false
+        });
+        const sphere = new THREE.Mesh(geometry, material);
+        sphere.position.set(...config.position);
+        spheres.push(sphere);
+        scene.add(sphere); // Add to scene
+
+        // Keep reference to first sphere for backward compatibility
+        if (index === 0) Globe = sphere;
+      });
+
+      return sphereConfigs;
+    }
+
+    // Custom intro animation
+    const targetRotation = (100 * Math.PI) / 180; // Show North America (lng ~-100)
+    const targetCameraZ = 2500; // Final camera distance (matches camera.position.z below)
+    const introAnimation = {
+      active: true,
+      startTime: Date.now(),
+      duration: 1000, // 1 second
+      initialRotation: Math.PI * 2 + targetRotation, // Start rotated 360 degrees + target
+      targetRotation: targetRotation, // End rotation to show North America
+      initialScale: 0.001, // Start very small
+      initialCameraZ: 1200, // Start camera far away
+      targetCameraZ: targetCameraZ // End camera distance
+    };
+
+    // Setup renderer
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(2, window.devicePixelRatio));
+    document.getElementById('globeViz').appendChild(renderer.domElement);
+
+    // Setup scene
+    const scene = new THREE.Scene();
+
+    // Add background plane with image
+    const textureLoader = new THREE.TextureLoader();
+    const backgroundTexture = textureLoader.load('/static/bg.png'); // Replace with your image URL
+    const planeGeometry = new THREE.PlaneGeometry(2048, 1234);
+    const planeMaterial = new THREE.MeshBasicMaterial({
+      map: backgroundTexture,
+      side: THREE.DoubleSide
+    });
+    const backgroundPlane = new THREE.Mesh(planeGeometry, planeMaterial);
+    backgroundPlane.position.z = -500; // Position behind spheres
+    scene.add(backgroundPlane);
+
+    // Spheres will be added to scene in init() function
+
+    // Add ambient light for base illumination
+    scene.add(new THREE.AmbientLight(0x404040, 1));
+
+    // Add directional light for specular highlights
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 2);
+    directionalLight.position.set(5, 3, 5);
+    scene.add(directionalLight);
+
+    // Setup camera
+    const camera = new THREE.PerspectiveCamera(
+      21, // FOV in degrees (default is 50, lower = more telephoto/zoomed)
+      window.innerWidth / window.innerHeight, // aspect ratio
+      0.1, // near clipping plane
+      5000 // far clipping plane
+    );
+    camera.updateProjectionMatrix();
+    camera.position.z = 1000;
+
+    // Add orbit controls for testing
+    const orbitControls = new OrbitControls(camera, renderer.domElement);
+    orbitControls.enableDamping = true;
+    orbitControls.dampingFactor = 0.05;
+
+    // Create separate scene for rings (render on top of post-processing)
+    const ringsScene = new THREE.Scene();
+    const ringsContainer = new THREE.Group();
+    ringsScene.add(ringsContainer);
+
+    // Create color overlay spheres from config
+    const colorOverlaySpheres = [];
+
+    function createOverlaySpheresFromConfig(sphereConfigs) {
+      sphereConfigs.forEach((config) => {
+        const overlayGeometry = new THREE.SphereGeometry(config.radius, 64, 64);
+        const overlayMaterial = new THREE.MeshBasicMaterial({
+          color: config.overlayColor,
+          transparent: true,
+          opacity: config.overlayOpacity,
+          depthWrite: false,
+          blending: THREE.AdditiveBlending
+        });
+        const overlay = new THREE.Mesh(overlayGeometry, overlayMaterial);
+        overlay.position.set(...config.position);
+        colorOverlaySpheres.push(overlay);
+        ringsScene.add(overlay);
+      });
+    }
+
+    // Setup post-processing
+    const composer = new EffectComposer(renderer);
+    const renderPass = new RenderPass(scene, camera);
+    composer.addPass(renderPass);
+
+    const halftonePass = new ShaderPass(HalftoneShader);
+    halftonePass.uniforms.resolution.value.set(window.innerWidth, window.innerHeight);
+    composer.addPass(halftonePass);
+
+    // Controls
+    const controls = {
+      patternSize: document.getElementById('patternSize'),
+      threshold: document.getElementById('threshold'),
+      contrast: document.getElementById('contrast'),
+      exposure: document.getElementById('exposure'),
+      blending: document.getElementById('blending'),
+      patternType: document.getElementById('patternType'),
+      greyscale: document.getElementById('greyscale'),
+      invert: document.getElementById('invert'),
+      enable: document.getElementById('enable'),
+      blackOverlay: document.getElementById('blackOverlay')
+    };
+
+    const values = {
+      patternSizeValue: document.getElementById('patternSizeValue'),
+      thresholdValue: document.getElementById('thresholdValue'),
+      contrastValue: document.getElementById('contrastValue'),
+      exposureValue: document.getElementById('exposureValue'),
+      blendingValue: document.getElementById('blendingValue'),
+      blackOverlayValue: document.getElementById('blackOverlayValue')
+    };
+
+    // Set initial slider value
+    controls.patternSize.value = initialPatternSize;
+    values.patternSizeValue.textContent = initialPatternSize;
+
+    // Control event listeners
+    controls.patternSize.addEventListener('input', (e) => {
+      const value = parseFloat(e.target.value);
+      halftonePass.uniforms.patternSize.value = value;
+      values.patternSizeValue.textContent = value;
+    });
+
+    controls.threshold.addEventListener('input', (e) => {
+      const value = parseFloat(e.target.value);
+      halftonePass.uniforms.threshold.value = value;
+      values.thresholdValue.textContent = value.toFixed(2);
+    });
+
+    controls.contrast.addEventListener('input', (e) => {
+      const value = parseFloat(e.target.value);
+      halftonePass.uniforms.contrast.value = value;
+      values.contrastValue.textContent = value.toFixed(1);
+    });
+
+    controls.exposure.addEventListener('input', (e) => {
+      const value = parseFloat(e.target.value);
+      halftonePass.uniforms.exposure.value = value;
+      values.exposureValue.textContent = value.toFixed(1);
+    });
+
+    controls.blending.addEventListener('input', (e) => {
+      const value = parseFloat(e.target.value);
+      halftonePass.uniforms.blending.value = value;
+      values.blendingValue.textContent = value.toFixed(1);
+    });
+
+    controls.patternType.addEventListener('change', (e) => {
+      const patternMap = { 'dots': 0, 'lines': 1, 'grid': 2, 'noise': 3, 'dotsTexture': 4 };
+      halftonePass.uniforms.patternType.value = patternMap[e.target.value];
+    });
+
+    controls.greyscale.addEventListener('change', (e) => {
+      halftonePass.uniforms.greyscale.value = e.target.checked;
+    });
+
+    controls.invert.addEventListener('change', (e) => {
+      halftonePass.uniforms.invert.value = e.target.checked;
+    });
+
+    controls.enable.addEventListener('change', (e) => {
+      halftonePass.uniforms.disable.value = !e.target.checked;
+    });
+
+    controls.blackOverlay.addEventListener('input', (e) => {
+      const value = parseFloat(e.target.value);
+      halftonePass.uniforms.blackOverlay.value = value;
+      values.blackOverlayValue.textContent = value.toFixed(2);
+    });
+
+    // Handle window resize
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      composer.setSize(window.innerWidth, window.innerHeight);
+      halftonePass.uniforms.resolution.value.set(window.innerWidth, window.innerHeight);
+    });
+
+    // Helper function to convert lat/lng to 3D position (matches three-globe's polar2Cartesian)
+    function latLngToVector3(lat, lng, radius) {
+      const phi = (90 - lat) * Math.PI / 180;
+      const theta = (90 - lng) * Math.PI / 180;
+      const phiSin = Math.sin(phi);
+      const x = radius * phiSin * Math.cos(theta);
+      const y = radius * Math.cos(phi);
+      const z = radius * phiSin * Math.sin(theta);
+      return new THREE.Vector3(x, y, z);
+    }
+
+    // Auto-rotation
+    const autoRotateSpeed = -0.01; // Degrees per frame
+
+    // Globe rotation
+    let targetGlobeRotation = introAnimation.targetRotation;
+    const rotationSpeed = 0.1; // How fast to interpolate rotation
+
+    // Animation loop
+    function animate() {
+      orbitControls.update();
+
+      // Custom intro animation
+      if (introAnimation.active) {
+        const elapsed = Date.now() - introAnimation.startTime;
+        const progress = Math.min(elapsed / introAnimation.duration, 1);
+
+        // Easing function (ease out quad)
+        const eased = 1 - Math.pow(1 - progress, 3);
+
+        // Animate globe scale (zoom in)
+        const scale = introAnimation.initialScale + (1 - introAnimation.initialScale) * eased;
+        Globe.scale.set(scale, scale, scale);
+
+        // Animate globe rotation (spin from initial to target)
+        Globe.rotation.y = introAnimation.initialRotation - (introAnimation.initialRotation - introAnimation.targetRotation) * eased;
+
+        // Animate camera zoom
+        camera.position.z = introAnimation.initialCameraZ - (introAnimation.initialCameraZ - introAnimation.targetCameraZ) * eased;
+
+        // End animation when complete
+        if (progress >= 1) {
+          introAnimation.active = false;
+          Globe.scale.set(1, 1, 1);
+          Globe.rotation.y = introAnimation.targetRotation;
+          camera.position.z = introAnimation.targetCameraZ;
+        }
+      } else {
+        // Interpolate globe rotation towards target
+        const rotationDiff = targetGlobeRotation - Globe.rotation.y;
+        Globe.rotation.y += rotationDiff * rotationSpeed;
+
+        // Auto-rotate the globe slightly when not hovering
+        if (Math.abs(rotationDiff) < 0.01) {
+          Globe.rotation.y += autoRotateSpeed * Math.PI / 180;
+          targetGlobeRotation += autoRotateSpeed * Math.PI / 180;
+        }
+      }
+
+      // Smooth hover animations for spheres and overlays
+      spheres.forEach((sphere, index) => {
+        const state = hoverStates[index];
+        if (!state) return;
+
+        const isHovered = hoveredSphereIndex === index;
+        const targetScale = isHovered ? 1.1 : 1.0;
+        const targetOpacity = isHovered ? 0.9 : state.originalOpacity;
+
+        // Smooth scale interpolation
+        const currentScale = sphere.scale.x;
+        const newScale = currentScale + (targetScale - currentScale) * 0.1;
+        sphere.scale.set(newScale, newScale, newScale);
+        colorOverlaySpheres[index].scale.set(newScale, newScale, newScale);
+
+        // Smooth opacity interpolation
+        const currentOpacity = colorOverlaySpheres[index].material.opacity;
+        const newOpacity = currentOpacity + (targetOpacity - currentOpacity) * 0.1;
+        colorOverlaySpheres[index].material.opacity = newOpacity;
+      });
+
+      // Render main scene with post-processing
+      composer.render();
+
+      // Render rings on top without post-processing
+      renderer.autoClear = false;
+      renderer.clearDepth();
+      renderer.render(ringsScene, camera);
+      renderer.autoClear = true;
+
+      requestAnimationFrame(animate);
+    }
+
+    // Raycaster for hover detection
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+    let hoveredSphereIndex = -1;
+
+    // Hover animation state for each sphere
+    const hoverStates = [];
+
+    // Mouse move handler for hover effects
+    function onMouseMove(event) {
+      // Calculate mouse position in normalized device coordinates
+      mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+      mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+      // Update raycaster
+      raycaster.setFromCamera(mouse, camera);
+
+      // Check for intersections with spheres
+      const intersects = raycaster.intersectObjects(spheres);
+
+      if (intersects.length > 0) {
+        const sphere = intersects[0].object;
+        hoveredSphereIndex = spheres.indexOf(sphere);
+      } else {
+        hoveredSphereIndex = -1;
+      }
+    }
+
+    window.addEventListener('mousemove', onMouseMove);
+
+    // Initialize scene with spheres from config
+    async function init() {
+      const sphereConfigs = await createSpheresFromConfig();
+      createOverlaySpheresFromConfig(sphereConfigs);
+
+      // Initialize hover states for each sphere
+      sphereConfigs.forEach((config, index) => {
+        hoverStates[index] = {
+          originalOpacity: config.overlayOpacity,
+          targetScale: 1.0,
+          targetOpacity: config.overlayOpacity
+        };
+      });
+
+      animate();
+    }
+
+    init();
+  </script>
+
+  <div class="mock-ui">
+  <div class="copy">
+    <h1>The Internet of Blockchains</h1>
+  </div>
+  
+  </div>
+</body>
+</html>
