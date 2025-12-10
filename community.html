@@ -406,7 +406,7 @@
       initialRotation: Math.PI * 2 + targetRotation, // Start rotated 360 degrees + target
       targetRotation: targetRotation, // End rotation to show North America
       initialScale: 0.001, // Start very small
-      initialCameraZ: 1200, // Start camera far away
+      initialCameraZ: 2400, // Start camera far away
       targetCameraZ: targetCameraZ // End camera distance
     };
 
@@ -640,12 +640,16 @@
         // Easing function (ease out quad)
         const eased = 1 - Math.pow(1 - progress, 3);
 
-        // Animate globe scale (zoom in)
+        // Animate all spheres scale (zoom in)
         const scale = introAnimation.initialScale + (1 - introAnimation.initialScale) * eased;
-        Globe.scale.set(scale, scale, scale);
+        spheres.forEach(sphere => {
+          sphere.scale.set(scale, scale, scale);
+        });
 
         // Animate globe rotation (spin from initial to target)
-        Globe.rotation.y = introAnimation.initialRotation - (introAnimation.initialRotation - introAnimation.targetRotation) * eased;
+        if (Globe) {
+          Globe.rotation.y = introAnimation.initialRotation - (introAnimation.initialRotation - introAnimation.targetRotation) * eased;
+        }
 
         // Animate camera zoom
         camera.position.z = introAnimation.initialCameraZ - (introAnimation.initialCameraZ - introAnimation.targetCameraZ) * eased;
@@ -653,8 +657,12 @@
         // End animation when complete
         if (progress >= 1) {
           introAnimation.active = false;
-          Globe.scale.set(1, 1, 1);
-          Globe.rotation.y = introAnimation.targetRotation;
+          spheres.forEach(sphere => {
+            sphere.scale.set(1, 1, 1);
+          });
+          if (Globe) {
+            Globe.rotation.y = introAnimation.targetRotation;
+          }
           camera.position.z = introAnimation.targetCameraZ;
         }
       } else {
