@@ -463,6 +463,7 @@
 
     // Create color overlay spheres from config
     const colorOverlaySpheres = [];
+    const radiatingRings = []; // Array to store radiating rings for each sphere
 
     function createOverlaySpheresFromConfig(sphereConfigs) {
       sphereConfigs.forEach((config) => {
@@ -478,6 +479,35 @@
         overlay.position.set(...config.position);
         colorOverlaySpheres.push(overlay);
         ringsScene.add(overlay);
+
+        // Create radiating rings for this sphere
+        const ringsForSphere = [];
+        const numRings = 3;
+        for (let i = 0; i < numRings; i++) {
+          const ringGeometry = new THREE.RingGeometry(config.radius * 0.9999, config.radius * 1.02, 64);
+          const ringMaterial = new THREE.MeshBasicMaterial({
+            color: config.overlayColor,
+            transparent: true,
+            opacity: 0,
+            side: THREE.DoubleSide,
+            depthWrite: false,
+            blending: THREE.AdditiveBlending
+          });
+          const ring = new THREE.Mesh(ringGeometry, ringMaterial);
+          ring.position.set(...config.position);
+
+          // Store animation data
+          ring.userData = {
+            baseRadius: config.radius + 10,
+            animationPhase: i / numRings, // Stagger the rings
+            maxScale: 1.6,
+            speed: 0.002
+          };
+
+          ringsForSphere.push(ring);
+          ringsScene.add(ring);
+        }
+        radiatingRings.push(ringsForSphere);
       });
     }
 
@@ -658,6 +688,29 @@
         const currentOpacity = colorOverlaySpheres[index].material.opacity;
         const newOpacity = currentOpacity + (targetOpacity - currentOpacity) * 0.1;
         colorOverlaySpheres[index].material.opacity = newOpacity;
+      });
+
+      // Animate radiating rings
+      radiatingRings.forEach((ringsForSphere, sphereIndex) => {
+        ringsForSphere.forEach(ring => {
+          // Update animation phase
+          ring.userData.animationPhase += ring.userData.speed;
+          if (ring.userData.animationPhase > 1) {
+            ring.userData.animationPhase = 0;
+          }
+
+          // Calculate scale and opacity based on phase
+          const phase = ring.userData.animationPhase;
+          const scale = 1 + (ring.userData.maxScale - 1) * phase;
+          ring.scale.set(scale, scale, 1);
+
+          // Fade out as it expands
+          const opacity = (1 - phase) * 0.5;
+          ring.material.opacity = opacity;
+
+          // Make rings face camera
+          ring.lookAt(camera.position);
+        });
       });
 
       // Render main scene with post-processing
