@@ -4,27 +4,31 @@
     "position": [-600, 50, 0],
     "color": "#2233ff",
     "overlayColor": "#336FB2",
-    "overlayOpacity": 0.9
+    "overlayOpacity": 0.9,
+    "tokenIcon": "/static/tokens/atom.png"
   },
   {
     "radius": 90,
     "position": [500, -120, 0],
     "color": "#ff3366",
     "overlayColor": "#ff66aa",
-    "overlayOpacity": 0.9
+    "overlayOpacity": 0.9,
+    "tokenIcon": "/static/tokens/celestia.png"
   },
   {
     "radius": 40,
     "position": [400, 200, 0],
     "color": "#33ff88",
     "overlayColor": "#66ffaa",
-    "overlayOpacity": 0.9
+    "overlayOpacity": 0.9,
+    "tokenIcon": "/static/tokens/atom.png"
   },
   {
     "radius": 40,
     "position": [-200, -180, 0],
     "color": "#33ff88",
     "overlayColor": "#EF5628",
-    "overlayOpacity": 0.9
+    "overlayOpacity": 0.9,
+    "tokenIcon": "/static/tokens/atom.png"
   }
 ]

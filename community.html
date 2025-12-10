@@ -464,6 +464,7 @@
     // Create color overlay spheres from config
     const colorOverlaySpheres = [];
     const radiatingRings = []; // Array to store radiating rings for each sphere
+    const tokenSprites = []; // Array to store token icon sprites
 
     function createOverlaySpheresFromConfig(sphereConfigs) {
       sphereConfigs.forEach((config) => {
@@ -479,6 +480,26 @@
         overlay.position.set(...config.position);
         colorOverlaySpheres.push(overlay);
         ringsScene.add(overlay);
+
+        // Create token icon sprite
+        if (config.tokenIcon) {
+          const textureLoader = new THREE.TextureLoader();
+          const iconTexture = textureLoader.load(config.tokenIcon);
+          const spriteMaterial = new THREE.SpriteMaterial({
+            map: iconTexture,
+            transparent: true,
+            depthWrite: false
+          });
+          const sprite = new THREE.Sprite(spriteMaterial);
+
+          // Scale sprite proportionally to sphere radius
+          const spriteScale = config.radius * 1.5;
+          sprite.scale.set(spriteScale, spriteScale, 1);
+          sprite.position.set(...config.position);
+
+          tokenSprites.push(sprite);
+          ringsScene.add(sprite);
+        }
 
         // Create radiating rings for this sphere
         const ringsForSphere = [];
@@ -500,7 +521,7 @@
           ring.userData = {
             baseRadius: config.radius + 10,
             animationPhase: i / numRings, // Stagger the rings
-            maxScale: 1.6,
+            maxScale: 1.7,
             speed: 0.002
           };
 
@@ -683,7 +704,7 @@
         if (!state) return;
 
         const isHovered = hoveredSphereIndex === index;
-        const targetScale = isHovered ? 1.15 : 1.0;
+        const targetScale = isHovered ? 1.1 : 1.0;
         const targetOpacity = isHovered ? 1 : state.originalOpacity;
 
         // Smooth scale interpolation
