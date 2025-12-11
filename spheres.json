@@ -1,34 +1,42 @@
 [
   {
-    "radius": 180,
-    "position": [-600, 50, 0],
+    "radius": 120,
+    "position": [-600, 0, 0],
     "color": "#2233ff",
-    "overlayColor": "#336FB2",
+    "overlayColor": "#4D59B3",
     "overlayOpacity": 0.9,
     "tokenIcon": "/static/tokens/atom.png"
   },
   {
     "radius": 90,
-    "position": [500, -120, 0],
-    "color": "#ff3366",
-    "overlayColor": "#ff66aa",
+    "position": [600, -120, 0],
+    "color": "#843CFB",
+    "overlayColor": "#843CFB",
     "overlayOpacity": 0.9,
     "tokenIcon": "/static/tokens/celestia.png"
   },
   {
     "radius": 40,
-    "position": [400, 200, 0],
-    "color": "#33ff88",
-    "overlayColor": "#66ffaa",
+    "position": [-400, 280, 0],
+    "color": "#cccccc",
+    "overlayColor": "#F8A597",
     "overlayOpacity": 0.9,
-    "tokenIcon": "/static/tokens/atom.png"
+    "tokenIcon": "/static/tokens/mantra.png"
   },
   {
     "radius": 40,
-    "position": [-200, -180, 0],
+    "position": [-240, -250, 0],
     "color": "#33ff88",
-    "overlayColor": "#EF5628",
+    "overlayColor": "#BD2BB3",
     "overlayOpacity": 0.9,
-    "tokenIcon": "/static/tokens/atom.png"
+    "tokenIcon": "/static/tokens/osmosis.png"
+  },
+  {
+    "radius": 55,
+    "position": [380, 300, 0],
+    "color": "#8F9EFF",
+    "overlayColor": "#5168FF",
+    "overlayOpacity": 0.9,
+    "tokenIcon": "/static/tokens/noble.png"
   }
 ]
