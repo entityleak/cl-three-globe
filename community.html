@@ -239,7 +239,7 @@
 
     // Detect DPI (pixel ratio)
     const dpr = window.devicePixelRatio || 1;
-    const initialPatternSize = dpr < 2 ? 6 : 5; // Use 6 for lower DPI screens (< 2x)
+    const initialPatternSize = dpr < 2 ? 8 : 7; // Use 6 for lower DPI screens (< 2x)
 
     // Pattern-based dithering shader (matching imageProcessor.js functionality)
     const HalftoneShader = {
@@ -442,13 +442,17 @@
     scene.add(directionalLight);
 
     // Setup camera
-    const camera = new THREE.PerspectiveCamera(
-      21, // FOV in degrees (default is 50, lower = more telephoto/zoomed)
-      window.innerWidth / window.innerHeight, // aspect ratio
-      0.1, // near clipping plane
-      5000 // far clipping plane
+    // Setup orthographic camera for flat view
+    const aspect = window.innerWidth / window.innerHeight;
+    const frustumSize = 1000;
+    const camera = new THREE.OrthographicCamera(
+      frustumSize * aspect / -2, // left
+      frustumSize * aspect / 2,  // right
+      frustumSize / 2,            // top
+      frustumSize / -2,           // bottom
+      0.1,                        // near
+      5000                        // far
     );
-    camera.updateProjectionMatrix();
     camera.position.z = 1000;
 
     // Add orbit controls for testing
@@ -521,7 +525,7 @@
           ring.userData = {
             baseRadius: config.radius + 10,
             animationPhase: i / numRings, // Stagger the rings
-            maxScale: 1.7,
+            maxScale: 1.9,
             speed: 0.002
           };
 
@@ -624,7 +628,11 @@
 
     // Handle window resize
     window.addEventListener('resize', () => {
-      camera.aspect = window.innerWidth / window.innerHeight;
+      const aspect = window.innerWidth / window.innerHeight;
+      camera.left = frustumSize * aspect / -2;
+      camera.right = frustumSize * aspect / 2;
+      camera.top = frustumSize / 2;
+      camera.bottom = frustumSize / -2;
       camera.updateProjectionMatrix();
       renderer.setSize(window.innerWidth, window.innerHeight);
       composer.setSize(window.innerWidth, window.innerHeight);
@@ -734,11 +742,11 @@
           ring.scale.set(scale, scale, 1);
 
           // Fade out as it expands
-          const opacity = (1 - phase) * 0.5;
+          const opacity = (1 - phase) * 0.8;
           ring.material.opacity = opacity;
 
           // Make rings face camera
-          ring.lookAt(camera.position);
+          // ring.lookAt(camera.position);
         });
       });
 
